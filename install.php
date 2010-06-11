@@ -59,7 +59,7 @@ foreach($phpgsb->usinglists as $value)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 ;");
 	}
 //Check timeout files writable
-if(file_put_contents("testfile.dat","TEST PRE-USE PHPGSB ".time())
+if(file_put_contents("testfile.dat","TEST PRE-USE PHPGSB ".time()))
 	unlink("testfile.dat");
 else
 	echo "<span style='color:red;font-weight:bold;'>ERROR: THIS DIRECTORY IS NOT WRITABLE, CHMOD to 775 or 777</span>";	
