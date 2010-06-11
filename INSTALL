@@ -14,3 +14,8 @@ Install Steps
 	delete it.
 4) Look at listupdater.php and lookup.php example files for
 	basic methods on using the system.
+5) If you choose to use listupdater.php then set it as a cron
+	job to run every minute. NOTE: It will not actually
+	update every minute but will ping the check file.
+	This is required in case of Backoff procedures and 
+	timeouts'.
