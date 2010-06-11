@@ -833,11 +833,20 @@ class phpGSB
 		$hostname = $parts['host'];
 		$path = $parts['path'];
 		$query = $parts['query'];
-		//TODO: Find real way of detecting if hex (url) encoding still exists, for now will loop twenty times
-		for ($i = 0; $i < 20; $i++) {
+		$lasthost = "";
+		$lastpath = "";
+		$lastquery = "";
+		//Remove all hex coding (loops max of 50 times to stop craziness but should never
+		//reach that)
+		for ($i = 0; $i < 50; $i++) {
 		$hostname = rawurldecode($hostname);
 		$path = rawurldecode($path);
 		$query = rawurldecode($query);
+		if($hostname==$lasthost&&$path==$lastpath&&$query==$lastquery)
+			break;
+		$lasthost = $hostname;
+		$lastpath = $path;
+		$lastquery = $query;
 		}
 		//Deal with hostname first
 		//Replace all leading and trailing dots
@@ -1044,11 +1053,11 @@ class phpGSB
 	function doFullLookup($prefixes,$originals)
 		{
 		//They should really all have the same prefix size.. we'll just check one
-		$prefixsize = strlen($prefixes[0])/2;
+		$prefixsize = strlen($prefixes[0][0])/2;
 		$length = count($prefixes)*$prefixsize;
 		foreach($prefixes as $key=>$value)
 			{
-			$prefixes[$key] = pack("H*",$value);
+			$prefixes[$key] = pack("H*",$value[0]);
 			}
 		$body = "$prefixsize:$length\n".implode("",$prefixes);
 		$buildopts = array(CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body);
@@ -1078,6 +1087,53 @@ class phpGSB
 			//"No No No! This just doesn't add up at all!"	
 			$this->fatalerror("ERROR: Invalid response returned from GSB ({$result[0]['http_code']})");
 			}
+		}
+	/*Checks to see if a match for a prefix is found in the sub table, if it is then we won't do
+	  a full-hash lookup. Return true on match in sub list, return false on negative.*/
+	function subCheck($listname,$prefixlist,$mode)
+		{
+		$buildtrunk = $listname.'-s';
+		if($mode=="prefix")
+			{
+			//Mode is prefix so the add part was a prefix, not a hostkey so we just check prefixes (saves a lookup)
+			foreach($prefixlist as $value)
+				{
+				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '{$value[0]}'");
+				if($result&&mysql_num_rows($result)>0)
+				  {
+				  //As interpreted from Developer Guide if theres a match in sub list it cancels out the add listing
+				  //we'll double check its from the same chunk just to be pedantic
+				  while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+					  {
+					  if(hexdec($row['AddChunkNum'])==$value[1])
+					  	return true;
+					  }
+				  }
+				
+				}
+			return false;
+			}
+		elseif($mode=="hostkey")
+			{
+			//Mode is hostkey
+			foreach($prefixlist as $value)
+				{
+				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '{$value[0]}'");
+				if($result&&mysql_num_rows($result)>0)
+				  {
+				  //As interpreted from Developer Guide if theres a match in sub list it cancels out the add listing
+				  //we'll double check its from the same chunk just to be pedantic
+				  while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+					  {
+					  if(hexdec($row['AddChunkNum'])==$value[1]&&empty($row['Prefix']))
+					  	return true;
+					  }
+				  }
+				
+				}
+			return false;
+			}
+		$this->fatalerror("Invalid SubCheck Mode $mode");
 		}
 	/*Does a full URL lookup on given lists, will check if its in database, if slight match there then 
 	  will do a full-hash lookup on GSB, returns (bool) true on match and (bool) false on negative.*/
@@ -1125,21 +1181,30 @@ class phpGSB
 							$prematches = array();
 							while ($rowtwo = mysql_fetch_array($result, MYSQL_ASSOC))
 								{
-								$prematches[] = $rowtwo['Prefix'];
+								$prematches[] = array($rowtwo['Prefix'],$row['Chunknum']);
 								}
-							//Send off any matching prefixes to do some full-hash key checks
-							$flookup = $this->doFullLookup($prematches,$prefixes);
-							if($flookup)
-								return true;
+							//Before we send off any requests first check whether its in sub table
+							$subchk = $this->subCheck($value,$prematches,"prefix");
+							if(!$subchk)
+								{
+								//Send off any matching prefixes to do some full-hash key checks
+								$flookup = $this->doFullLookup($prematches,$prefixes);
+								if($flookup)
+									return true;
+								}
 							}
 						//If we didn't find matches then do nothing (keep looping till end and it'll return negative)	
 						}
 					else
 						{
-						//There was a match but the count was 0 that entire domain could be a match, Send off to check
-						$flookup = $this->doFullLookup(array($row['Hostkey']),$hostkeys);
-						if($flookup)
-							return true;
+						$subchk = $this->subCheck($value,array($row['Hostkey']),"hostkey");
+						if(!$subchk)
+							{
+							//There was a match but the count was 0 that entire domain could be a match, Send off to check
+							$flookup = $this->doFullLookup(array($row['Hostkey']),$hostkeys);
+							if($flookup)
+								return true;
+							}
 						}
 					  }
 				  }	
