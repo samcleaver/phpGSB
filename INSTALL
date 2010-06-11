@@ -1,0 +1,16 @@
+phpGSB - PHP Google Safe Browsing Implementation
+Version 0.1 (ALPHA) - Not recommended for production use
+Released under New BSD License (see LICENSE)
+Copyright (c) 2010, Sam Cleaver (Beaver6813, Beaver6813.com)
+All rights reserved.
+------------------------------------------------------------
+Install Steps
+
+1) Enter database details into install.php
+	(Replace DATABASE_USERNAME, DATABASE_NAME and
+	 DATABASE_PASSWORD with applicable information)
+2) Run install.php
+3) If install.php ran successfully (no error messages) then
+	delete it.
+4) Look at listupdater.php and lookup.php example files for
+	basic methods on using the system.

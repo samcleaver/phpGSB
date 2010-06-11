@@ -9,7 +9,7 @@ All rights reserved.
 INITIAL INSTALLER - RUN ONCE (or more than once if you're adding a new list!)
 */
 require("phpgsb.class.php");
-$phpgsb = new phpGSB("DATABASE_USERNAME","DATABASE_USERNAME","DATABASE_PASSWORD");
+$phpgsb = new phpGSB("DATABASE_NAME","DATABASE_USERNAME","DATABASE_PASSWORD");
 $phpgsb->usinglists = array('googpub-phish-shavar','goog-malware-shavar');
 //Install MySQL tables
 foreach($phpgsb->usinglists as $value)
