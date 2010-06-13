@@ -724,7 +724,7 @@ class phpGSB
 			//Normalise
 			$newip = hexdec($hexplode[0].$hexplode[1]).'.'.hexdec($hexplode[2].$hexplode[3]).'.'.hexdec($hexplode[4].$hexplode[5]).'.'.hexdec($hexplode[6].$hexplode[7]);
 			//Now check if its an IP
-			if(is_ip($newip))
+			if($this->is_ip($newip))
 				return $newip;
 			else
 				return false;
@@ -1048,18 +1048,119 @@ class phpGSB
 			}
 		return $extracthash;
 		}
+	/*Add a full-hash key to a prefix or hostkey (the variable is $prefix but it could
+	  be either).*/
+	function addFullHash($prefix,$chunknum,$fullhash,$listname)
+		{
+		$buildtrunk = $listname."-a";
+		//First check hosts
+		$result = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `Chunknum` = '$chunknum'");
+		if($result&&mysql_num_rows($result)>0)
+			{
+			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+						  {
+						  if(empty($row['FullHash']))
+							  {
+							  //We've got a live one! Insert the full hash for it	
+							  $addresult = mysql_query("UPDATE `$buildtrunk-hosts` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");
+							  if(!$addresult)
+							  		$this->fatalerror("Could not cache full-hash key. $prefix, $chunknum, $fullhash, $listname");
+							  }
+						  }
+			}
+		else
+			{
+			//If there are no rows it must be a prefix	
+			$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix'");
+			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+						  {
+						  if(empty($row['FullHash']))
+							  {
+							  $resulttwo = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}' AND `Chunknum` = '$chunknum'");
+							  while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
+								  {
+								  if(hexdec($rowtwo['Count'])>0)
+									  {
+									  $addresult = mysql_query("UPDATE `$buildtrunk-prefixes` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");	
+									  if(!$addresult)
+										  $this->fatalerror("Could not cache full-hash key. $prefix, $chunknum, $fullhash, $listname");
+									  }
+								  }
+							  }
+						  }
+			}
+			
+		}
+	/*Check database for any cached full-length hashes for a given prefix.*/
+	function cacheCheck($prefix)
+		{
+		foreach($this->usinglists as $value)
+			{
+			$buildtrunk = $value."-a";
+			$result = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `FullHash` != ''");
+			if($result&&mysql_num_rows($result)>0)
+				{
+				while($row = mysql_fetch_array($result, MYSQL_ASSOC))
+					{
+					return array($row['FullHash'],$row['Chunknum']);				
+					}	
+				}
+			else
+				{
+				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix' AND `FullHash` != ''");
+				if($result&&mysql_num_rows($result)>0)
+					{
+					while($row = mysql_fetch_array($result, MYSQL_ASSOC))
+						{	
+						$resulttwo = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}'");
+						while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
+									  {
+										if(hexdec($rowtwo['Count'])>0)
+										  {
+										   return array($row['FullHash'],$rowtwo['Chunknum']);	
+										  }
+										  
+									  }		
+						}
+					}					
+				}
+			}
+		return false;
+		}
 	/*Do a full-hash lookup based on prefixes provided, returns (bool) true
 	  on a match and (bool) false on no match.*/
 	function doFullLookup($prefixes,$originals)
 		{
+		//Store copy of original prefixes
+		$cloneprefixes = $prefixes;
 		//They should really all have the same prefix size.. we'll just check one
 		$prefixsize = strlen($prefixes[0][0])/2;
 		$length = count($prefixes)*$prefixsize;
 		foreach($prefixes as $key=>$value)
 			{
+			//Check cache on each iteration (we can return true earlier if we get a match!)
+			$cachechk = $this->cacheCheck($value[0]);
+			if($cachechk)
+				{
+				if(isset($originals[$cachechk[0]]))
+					{
+					//Check from same chunk	
+					foreach($cloneprefixes as $nnewvalue)
+							{
+							if($nnewvalue[1]==$cachechk[1]&&$value[0]==$originals[$cachechk[0]]['Prefix'])
+								{
+								//From same chunks
+								return true;
+								}
+								
+							}
+					}
+				}
 			$prefixes[$key] = pack("H*",$value[0]);
 			}
+		//No cache matches so we continue with request
 		$body = "$prefixsize:$length\n".implode("",$prefixes);
+
 		$buildopts = array(CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body);
 		$result = $this->googleDownloader("http://safebrowsing.clients.google.com/safebrowsing/gethash?client=api&apikey=".$this->apikey."&appver=".$this->version."&pver=".$this->apiversion,$buildopts,"lookup");
 	
@@ -1067,12 +1168,27 @@ class phpGSB
 			{
 			//Extract hashes from response
 			$extractedhashes = $this->processFullLookup($result[1]);
-			foreach($extractedhashes as $value)
+			//Loop over each list
+			foreach($extractedhashes as $key=>$value)
 				{
-				foreach($value as $newvalue)
+				//Loop over each value in each list
+				foreach($value as $newkey=>$newvalue)
 					{
 					if(isset($originals[$newvalue]))
-						return true;
+						{
+						//Okay it matches a full-hash we have, now to check they're from the same chunks
+						foreach($cloneprefixes as $nnewvalue)
+							{
+							if($nnewvalue[1]==$newkey&&$nnewvalue[0]==$originals[$newvalue]['Prefix'])
+								{
+								//From same chunks
+								//Add full hash to database (cache)
+								$this->addFullHash($nnewvalue[0],$nnewvalue[1],$newvalue,$key);
+								return true;
+								}
+								
+							}
+						}
 					}
 				}
 			return false;		
@@ -1179,6 +1295,7 @@ class phpGSB
 							{
 							//We found prefix matches	
 							$prematches = array();
+							$prelookup = array();
 							while ($rowtwo = mysql_fetch_array($result, MYSQL_ASSOC))
 								{
 								$prematches[] = array($rowtwo['Prefix'],$row['Chunknum']);
@@ -1201,7 +1318,7 @@ class phpGSB
 						if(!$subchk)
 							{
 							//There was a match but the count was 0 that entire domain could be a match, Send off to check
-							$flookup = $this->doFullLookup(array($row['Hostkey']),$hostkeys);
+							$flookup = $this->doFullLookup(array(array($row['Hostkey'],$row['Chunknum'])),$hostkeys);
 							if($flookup)
 								return true;
 							}
