@@ -1285,7 +1285,7 @@ class phpGSB
 							$buildprequery = array();
 							foreach($prefixes as $key=>$value)
 								{
-								$buildprequery[] = " `Prefix` = '{$prefixes['Prefix']}' ";	
+								$buildprequery[] = " `Prefix` = '{$value['Prefix']}' ";	
 								}
 							$buildprequery = implode("OR",$buildprequery);
 							}
@@ -1296,7 +1296,7 @@ class phpGSB
 							//We found prefix matches	
 							$prematches = array();
 							$prelookup = array();
-							while ($rowtwo = mysql_fetch_array($result, MYSQL_ASSOC))
+							while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
 								{
 								$prematches[] = array($rowtwo['Prefix'],$row['Chunknum']);
 								}
