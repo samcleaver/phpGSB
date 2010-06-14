@@ -467,16 +467,20 @@ class phpGSB
 		//Select all host keys that match chunks (we'll delete them after but we need the hostkeys list!)
 		$result = mysql_query("SELECT `Hostkey` FROM `$buildtrunk-hosts` WHERE $clause");
 		$buildprefixdel = array();
-		while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+		if($result&&mysql_num_rows($result)>0)
 			{
-			if(!empty($row['Hostkey']))
-				$buildprefixdel[] = $row['Hostkey'];
+			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+				{
+				if(!empty($row['Hostkey']))
+					$buildprefixdel[] = $row['Hostkey'];
+				}
+			$mergeprefixdel = implode("' OR `Hostkey` = '",$buildprefixdel);
+			//Delete all matching hostkey prefixes
+			mysql_query("DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '$mergeprefixdel'");
+				
+			//Delete all matching hostkeys
+			mysql_query("DELETE FROM `$buildtrunk-hosts` WHERE $clause");	
 			}
-		$mergeprefixdel = implode("' OR `Hostkey` = '",$buildprefixdel);
-		//Delete all matching hostkey prefixes
-		mysql_query("DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '$mergeprefixdel'");
-		//Delete all matching hostkeys
-		mysql_query("DELETE FROM `$buildtrunk-hosts` WHERE $clause");		
 		}
 	/*Main part of updater function, will call all other functions, merely requires 
 	  the request body, it will then process and save all data as well as checking
