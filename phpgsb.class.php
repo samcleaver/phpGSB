@@ -253,7 +253,7 @@ class phpGSB
 					}
 				else
 					{
-					outputmsg("DISCARDED CHUNKNUM: $chunknum (Had no valid label)");
+					$this->outputmsg("DISCARDED CHUNKNUM: $chunknum (Had no valid label)");
 					}
 				}
 			else
@@ -275,7 +275,7 @@ class phpGSB
 					}
 				else
 					{
-					outputmsg("DISCARDED CHUNKNUM: $chunknum (Empty)");
+					$this->outputmsg("DISCARDED CHUNKNUM: $chunknum (Empty)");
 					}
 				}
 			$clonedata = trim(mb_substr($splithead[1],$chunklen));
