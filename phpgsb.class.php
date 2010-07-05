@@ -175,7 +175,7 @@ class phpGSB
 		$clonedata = $loaddata;
 		$addi = 0;
 		$subi = 0;
-		while(mb_strlen($clonedata)>0)
+		while(strlen($clonedata)>0)
 			{
 			$splithead = explode("\n",$clonedata,2);
 			$chunkinfo = explode(':',$splithead[0]);
@@ -188,21 +188,21 @@ class phpGSB
 				$tmparray = array();
 				//Convert to hex for easy processing
 				//First get chunkdata according to length
-				$chunkdata = bin2hex(mb_substr(trim($splithead[1]),0,$chunklen));
+				$chunkdata = bin2hex(substr(trim($splithead[1]),0,$chunklen));
 				if($type=='a')
 					{
 					$maini = 0;
-					while(mb_strlen($chunkdata)>0)
+					while(strlen($chunkdata)>0)
 						{
-						$tmparray[$maini]['HOSTKEY'] = mb_substr($chunkdata, 0, 8); 
-						$tmparray[$maini]['COUNT'] = mb_substr($chunkdata, 8, 2);
-						$chunkdata = mb_substr($chunkdata,10);
+						$tmparray[$maini]['HOSTKEY'] = substr($chunkdata, 0, 8); 
+						$tmparray[$maini]['COUNT'] = substr($chunkdata, 8, 2);
+						$chunkdata = substr($chunkdata,10);
 						$realcount = hexdec($tmparray[$maini]['COUNT']);
 						if($realcount>0)
 							{
 							for ($i = 0; $i < $realcount; $i++) { 
-							$tmparray[$maini]['PAIRS'][$i]['PREFIX'] = mb_substr($chunkdata, 0, ($hashlen*2));
-							$chunkdata = mb_substr($chunkdata,(($hashlen*2)));
+							$tmparray[$maini]['PAIRS'][$i]['PREFIX'] = substr($chunkdata, 0, ($hashlen*2));
+							$chunkdata = substr($chunkdata,(($hashlen*2)));
 							}		
 							}
 						elseif($realcount<0)
@@ -220,24 +220,24 @@ class phpGSB
 				elseif($type=='s')
 					{
 					$maini = 0;
-					while(mb_strlen($chunkdata)>0)
+					while(strlen($chunkdata)>0)
 						{
-						$tmparray[$maini]['HOSTKEY'] = mb_substr($chunkdata, 0, 8); 
-						$tmparray[$maini]['COUNT'] = mb_substr($chunkdata, 8, 2);
-						$chunkdata = mb_substr($chunkdata,10);
+						$tmparray[$maini]['HOSTKEY'] = substr($chunkdata, 0, 8); 
+						$tmparray[$maini]['COUNT'] = substr($chunkdata, 8, 2);
+						$chunkdata = substr($chunkdata,10);
 						$realcount = hexdec($tmparray[$maini]['COUNT']);
 						if($realcount>0)
 							{
 							for ($i = 0; $i < $realcount; $i++) { 
-							$tmparray[$maini]['PAIRS'][$i]['ADDCHUNKNUM'] = mb_substr($chunkdata, 0, 8);
-							$tmparray[$maini]['PAIRS'][$i]['PREFIX'] = mb_substr($chunkdata, 8, ($hashlen*2));
-							$chunkdata = mb_substr($chunkdata,(($hashlen*2)+8));
+							$tmparray[$maini]['PAIRS'][$i]['ADDCHUNKNUM'] = substr($chunkdata, 0, 8);
+							$tmparray[$maini]['PAIRS'][$i]['PREFIX'] = substr($chunkdata, 8, ($hashlen*2));
+							$chunkdata = substr($chunkdata,(($hashlen*2)+8));
 							}		
 							}
 						elseif($realcount==0)
 							{
-							$tmparray[$maini]['PAIRS'][0]['ADDCHUNKNUM'] = mb_substr($chunkdata, 0, 8);
-							$chunkdata = mb_substr($chunkdata, 8);
+							$tmparray[$maini]['PAIRS'][0]['ADDCHUNKNUM'] = substr($chunkdata, 0, 8);
+							$chunkdata = substr($chunkdata, 8);
 							}
 						else
 							{
@@ -278,7 +278,7 @@ class phpGSB
 					$this->outputmsg("DISCARDED CHUNKNUM: $chunknum (Empty)");
 					}
 				}
-			$clonedata = trim(mb_substr($splithead[1],$chunklen));
+			$clonedata = trim(substr($splithead[1],$chunklen));
 			}
 		return array("Subs"=>$subarray,"Adds"=>$addarray);
 		}
@@ -1035,20 +1035,20 @@ class phpGSB
 		{
 		$clonedata = $data;
 		$extracthash = array();
-		while(mb_strlen($clonedata)>0)
+		while(strlen($clonedata)>0)
 			{
 			$splithead = explode("\n",$clonedata,2);
 			$chunkinfo = explode(':',$splithead[0]);
 			$listname = $chunkinfo[0];
 			$addchunk = $chunkinfo[1];
 			$chunklen = $chunkinfo[2];
-			$chunkdata = bin2hex(mb_substr(trim($splithead[1]),0,$chunklen));
-			while(mb_strlen($chunkdata)>0)
+			$chunkdata = bin2hex(substr(trim($splithead[1]),0,$chunklen));
+			while(strlen($chunkdata)>0)
 						{
-						$extracthash[$listname][$addchunk] = mb_substr($chunkdata,0,64);
-						$chunkdata = mb_substr($chunkdata,64);	
+						$extracthash[$listname][$addchunk] = substr($chunkdata,0,64);
+						$chunkdata = substr($chunkdata,64);	
 						}
-			$clonedata = mb_substr($splithead[1],$chunklen);
+			$clonedata = substr($splithead[1],$chunklen);
 			}
 		return $extracthash;
 		}
