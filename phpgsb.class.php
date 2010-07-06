@@ -299,12 +299,12 @@ class phpGSB
 					  {
 					  foreach($value['REAL'] as $newkey=>$newvalue)
 						  {
-						  $buildhost[] = "('','{$newvalue['HOSTKEY']}','{$value['CHUNKNUM']}','{$newvalue['COUNT']}','')";
+						  $buildhost[] = "('{$newvalue['HOSTKEY']}','{$value['CHUNKNUM']}','{$newvalue['COUNT']}','')";
 						  if(isset($newvalue['PAIRS'])&&count($newvalue['PAIRS'])>0)
 							  {
 							  foreach($newvalue['PAIRS'] as $innerkey=>$innervalue)
 								  {
-								  $buildpairs[] = "('','{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','{$innervalue['PREFIX']}','')";
+								  $buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','{$innervalue['PREFIX']}','')";
 								  }				
 							  }	
 						  }	
@@ -322,14 +322,14 @@ class phpGSB
 				{
 			//Insert hostkeys index
 			$hostinsert = implode(', ',$buildhost);
-			mysql_query("INSERT INTO `$listname-s-hosts` (`ID`,`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
+			mysql_query("INSERT INTO `$listname-s-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
 			$this->outputmsg("INSERTED $listname SUB HOST KEYS ".mysql_error());
 				}
 			if(count($buildpairs)>0)
 				{
 			//Insert prefixes
 			$pairinsert = implode(', ',$buildpairs);
-			mysql_query("INSERT INTO `$listname-s-prefixes` (`ID`,`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+			mysql_query("INSERT INTO `$listname-s-prefixes` (`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
 			$this->outputmsg("INSERTED $listname SUB PREFIX KEYS ".mysql_error());
 				}
 			  }
@@ -350,12 +350,12 @@ class phpGSB
 					  {
 					  foreach($value['REAL'] as $newkey=>$newvalue)
 						  {
-						  $buildhost[] = "('','{$newvalue['HOSTKEY']}','{$value['CHUNKNUM']}','{$newvalue['COUNT']}','')";
+						  $buildhost[] = "('{$newvalue['HOSTKEY']}','{$value['CHUNKNUM']}','{$newvalue['COUNT']}','')";
 						  if(isset($newvalue['PAIRS'])&&count($newvalue['PAIRS'])>0)
 							  {
 							  foreach($newvalue['PAIRS'] as $innerkey=>$innervalue)
 								  {
-								  $buildpairs[] = "('','{$newvalue['HOSTKEY']}','{$innervalue['PREFIX']}','')";
+								  $buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['PREFIX']}','')";
 								  }				
 							  }	
 						  }	
@@ -373,14 +373,14 @@ class phpGSB
 				{
 			//Insert hostkeys index
 			$hostinsert = implode(', ',$buildhost);
-			mysql_query("INSERT INTO `$listname-a-hosts` (`ID`,`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
+			mysql_query("INSERT INTO `$listname-a-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
 			$this->outputmsg("INSERTED $listname ADD HOST KEYS ".mysql_error());
 				}
 			if(count($buildpairs)>0)
 				{
 			//Insert prefixes
 			$pairinsert = implode(', ',$buildpairs);
-			mysql_query("INSERT INTO `$listname-a-prefixes` (`ID`,`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+			mysql_query("INSERT INTO `$listname-a-prefixes` (`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
 			$this->outputmsg("INSERTED $listname PREFIX HOST KEYS ".mysql_error());
 				}
 			  }
