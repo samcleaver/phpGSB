@@ -9,7 +9,7 @@ All rights reserved.
 UPDATER EXAMPLE
 */
 require("phpgsb.class.php");
-$phpgsb = new phpGSB("DATABASE_USERNAME","DATABASE_USERNAME","DATABASE_PASSWORD");
+$phpgsb = new phpGSB("DATABASE_NAME","DATABASE_USERNAME","DATABASE_PASSWORD");
 //Obtain an API key from: http://code.google.com/apis/safebrowsing/key_signup.html
 $phpgsb->apikey = "API_KEY_HERE";
 $phpgsb->usinglists = array('googpub-phish-shavar','goog-malware-shavar');

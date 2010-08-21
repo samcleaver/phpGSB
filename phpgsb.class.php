@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.1";
-	
+	var $realversion= "0.1.2";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -19,10 +19,13 @@ class phpGSB
 	var $adminemail	= "";
 	var $usinglists = array('googpub-phish-shavar','goog-malware-shavar');
 	var $mainlist	= array();
+	var $verbose	= true;
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
-	function phpGSB($database=false,$username=false,$password=false,$host="localhost")
+	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
 		{
+		if(!$verbose)
+			$this->silent();
 		$this->outputmsg("phpGSB Loaded");
 		if($database&&$username)	
 			$this->dbConnect($database,$username,$password,$host);
@@ -31,25 +34,35 @@ class phpGSB
 		{
 		mysql_close();	
 		}
+	function silent()
+		{
+		$this->verbose = false;	
+		}
 	/*Function to output messages, used instead of echo,
 	  will make it easier to have a verbose switch in later
 	  releases*/
 	function outputmsg($msg)
 		{
-		echo $msg.'...<br/>';
-		$this->ob .= ob_get_contents();
-		ob_flush();
+		if($this->verbose)
+			{
+			echo $msg.'...<br/>';
+			$this->ob .= ob_get_contents();
+			ob_flush();
+			}
 		}
 	/*Function to output errors, used instead of echo,
 	  will make it easier to have a verbose switch in later
 	  releases*/	
 	function fatalerror($msg)
 		{
-		print_r($msg);
-		echo '...<br/>';
-		$this->ob .= ob_get_contents();
-		ob_end_flush();
-		die();
+		if($this->verbose)
+			{
+			print_r($msg);
+			echo '...<br/>';
+			$this->ob .= ob_get_contents();
+			ob_end_flush();
+			die();
+			}
 		}
 	/*Wrapper to connect to database. Simples.*/
 	function dbConnect($database,$username,$password,$host="localhost")
@@ -929,9 +942,11 @@ class phpGSB
 		}
 	/*Make Hostkeys for use in a lookup*/
 	function makeHostKey($host,$usingip)
+
 		{
 		if($usingip)
 			$hosts = array($host."/");
+
 		else
 			{
 			$hostparts = explode(".",$host);
