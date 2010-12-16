@@ -317,7 +317,12 @@ class phpGSB
 							  {
 							  foreach($newvalue['PAIRS'] as $innerkey=>$innervalue)
 								  {
-								  $buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','{$innervalue['PREFIX']}','')";
+								  if( isset($innervalue['PREFIX']) ) {
+										$buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','{$innervalue['PREFIX']}','')";
+									} else {
+										$buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','','')";
+										}
+
 								  }				
 							  }	
 						  }	
@@ -368,7 +373,11 @@ class phpGSB
 							  {
 							  foreach($newvalue['PAIRS'] as $innerkey=>$innervalue)
 								  {
+									if( isset($innervalue['PREFIX']) ) {
 								  $buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['PREFIX']}','')";
+									} else {
+									$buildpairs[] = "('{$newvalue['HOSTKEY']}','','')";	
+									}
 								  }				
 							  }	
 						  }	
