@@ -1212,7 +1212,7 @@ class phpGSB
 				}
 			return false;		
 			}
-		elseif($result[0]['http_code']==204&&empty($result[1]))
+		elseif($result[0]['http_code']==204&&strlen($result[1])==0)
 			{
 			//204 Means no match
 			return false;	
