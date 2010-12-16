@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.1";
-	var $realversion= "0.1.2";
+	var $realversion= "0.1.3";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -703,15 +703,14 @@ class phpGSB
 		//As this deals with parts in IP's we can be more exclusive
 		if(substr_count(substr($value,0,2),'0x')>0&&$this->is_hex($value))
 				{
-				$newvalue = hexdec($value);
+				return hexdec($value);
 				}
 			elseif($this->is_octal($value))
 				{
-				$newvalue = octdec($value);	
+				return octdec($value);	
 				}
 			else
-				$newvalue = $value;
-		return $newvalue;
+				return false;
 		}
 	/*Converts IP address part in HEX to decimal*/
 	function iphexdec($hex)
@@ -773,7 +772,7 @@ class phpGSB
 		if(count($ipcomponents)==2)
 			{
 			//The writers of the RFC docs certainly didn't think about the clients! This could be a DWORD mixed with an IP part
-			if($ipcomponents[0]<=255)
+			if($ipcomponents[0]<=255&&is_int($ipcomponents[0])&&is_int($ipcomponents[1]))
 				{
 				$threeparts = dechex($ipcomponents[1]);
 				$hexplode = preg_split('//', $threeparts, -1, PREG_SPLIT_NO_EMPTY);
@@ -787,7 +786,7 @@ class phpGSB
 		if(count($ipcomponents)==3)
 			{
 			//Guess what... it could also be a DWORD mixed with two IP parts!
-			if($ipcomponents[0]<=255&&$ipcomponents[1]<=255)
+			if(($ipcomponents[0]<=255&&is_int($ipcomponents[0]))&&($ipcomponents[1]<=255&&is_int($ipcomponents[1]))&&is_int($ipcomponents[2]))
 				{
 				$twoparts = dechex($ipcomponents[2]);
 				$hexplode = preg_split('//', $twoparts, -1, PREG_SPLIT_NO_EMPTY);
@@ -801,7 +800,8 @@ class phpGSB
 		$tmpcomponents = array($ipcomponents[2],$ipcomponents[3]);
 		foreach($tmpcomponents as $key=>$value)
 			{
-			$tmpcomponents[$key] = $this->hexoct2dec($value);	
+			if(!$tmpcomponents[$key] = $this->hexoct2dec($value))
+				return false;	
 			}
 		array_unshift($tmpcomponents,$ipcomponents[0],$ipcomponents[1]);
 		//Convert back to IP form
