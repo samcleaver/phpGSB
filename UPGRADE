@@ -1,0 +1,19 @@
+phpGSB - PHP Google Safe Browsing Implementation
+Version 0.2 (ALPHA) - Not recommended for production use
+Released under New BSD License (see LICENSE)
+Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
+All rights reserved.
+------------------------------------------------------------
+Upgrade Steps
+Upgrade from 0.1.* to 0.2
+
+1) Enter database details into upgrade.php
+	(Replace DATABASE_USERNAME, DATABASE_NAME and
+	 DATABASE_PASSWORD with applicable information)
+2) Run upgrade.php
+3) If upgrade.php ran successfully (no error messages) then
+	delete it.
+4) Use PHPGSB as you did before. NOTE: There has been an internal
+rearrangement in the functions of the class and so those not using
+runUpdate() (and who are accessing functions directly) may need to
+check their code.

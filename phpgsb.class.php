@@ -1,17 +1,17 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.1 (ALPHA) - Not recommended for production use
+Version 0.2 (ALPHA) - Not recommended for production use
 Released under New BSD License (see LICENSE)
-Copyright (c) 2010, Sam Cleaver (Beaver6813, Beaver6813.com)
+Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 */
 ob_start();
 class phpGSB
 	{
 	var $apikey 	= "";	
-	var $version 	= "0.1";
-	var $realversion= "0.1.3";
+	var $version 	= "0.2";
+	var $realversion= "0.2";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -20,6 +20,7 @@ class phpGSB
 	var $usinglists = array('googpub-phish-shavar','goog-malware-shavar');
 	var $mainlist	= array();
 	var $verbose	= true;
+	var $transtarted= false;
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
 	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
@@ -33,10 +34,35 @@ class phpGSB
 	function close()
 		{
 		mysql_close();	
+		$this->outputmsg("Closing phpGSB. (Peak Memory: ".(round(memory_get_peak_usage()/1048576,3))."MB)");
 		}
 	function silent()
 		{
 		$this->verbose = false;	
+		}
+	function trans_begin()
+		{
+		$this->transtarted = true;
+		$this->outputmsg("Begin MySQL Transaction");
+		mysql_query("BEGIN");	
+		}
+	function trans_commit()
+		{
+		if($this->transtarted&&mysql_ping())
+			{
+			$this->transtarted = false;
+			$this->outputmsg("Comitting Transaction");
+			mysql_query("COMMIT");
+			}
+		}
+	function trans_rollback()
+		{
+		if($this->transtarted&&mysql_ping())
+			{
+			$this->transtarted = false;
+			$this->outputmsg("Rolling Back Transaction");
+			mysql_query("ROLLBACK");
+			}
 		}
 	/*Function to output messages, used instead of echo,
 	  will make it easier to have a verbose switch in later
@@ -63,6 +89,7 @@ class phpGSB
 			ob_end_flush();
 			die();
 			}
+		$this->trans_rollback();
 		}
 	/*Wrapper to connect to database. Simples.*/
 	function dbConnect($database,$username,$password,$host="localhost")
@@ -180,14 +207,12 @@ class phpGSB
 			}
 		}
 	/*Processes data recieved from a GSB data request into a managable array*/
-	function processChunks($fulldata)
+	function processChunks($fulldata,$listname)
 		{
 		$subarray = array();
 		$addarray = array();
 		$loaddata = trim($fulldata);
 		$clonedata = $loaddata;
-		$addi = 0;
-		$subi = 0;
 		while(strlen($clonedata)>0)
 			{
 			$splithead = explode("\n",$clonedata,2);
@@ -223,12 +248,13 @@ class phpGSB
 							$this->fatalerror(array("Decoding Error, Somethings gone wrong!",$tmparray[$maini]));	
 							}
 						$maini++;
-						}	
-					$addarray[$addi]['CHUNKNUM'] = $chunknum;
-					$addarray[$addi]['HASHLEN'] = $hashlen;
-					$addarray[$addi]['CHUNKLEN'] = $chunklen;
-					$addarray[$addi]['REAL'] = $tmparray;
-					$addi++;				
+						}
+					$addarray['CHUNKNUM'] = $chunknum;
+					$addarray['HASHLEN'] = $hashlen;
+					$addarray['CHUNKLEN'] = $chunklen;
+					$addarray['REAL'] = $tmparray;
+					$this->saveChunkPart($addarray,"ADD",$listname);
+					unset($addarray);			
 					}
 				elseif($type=='s')
 					{
@@ -258,11 +284,12 @@ class phpGSB
 							}
 						$maini++;
 						}	
-					$subarray[$subi]['CHUNKNUM'] = $chunknum;
-					$subarray[$subi]['HASHLEN'] = $hashlen;
-					$subarray[$subi]['CHUNKLEN'] = $chunklen;
-					$subarray[$subi]['REAL'] = $tmparray;
-					$subi++;	
+					$subarray['CHUNKNUM'] = $chunknum;
+					$subarray['HASHLEN'] = $hashlen;
+					$subarray['CHUNKLEN'] = $chunklen;
+					$subarray['REAL'] = $tmparray;
+					$this->saveChunkPart($subarray,"SUB",$listname);
+					unset($subarray);
 					}
 				else
 					{
@@ -274,17 +301,19 @@ class phpGSB
 				//No ChunkData, Still Insert	
 				if($type=='a')
 					{
-					$addarray[$addi]['CHUNKNUM'] = $chunknum;
-					$addarray[$addi]['HASHLEN'] = $hashlen;
-					$addarray[$addi]['CHUNKLEN'] = $chunklen;
-					$addi++;
+					$addarray['CHUNKNUM'] = $chunknum;
+					$addarray['HASHLEN'] = $hashlen;
+					$addarray['CHUNKLEN'] = $chunklen;
+					$this->saveChunkPart($addarray,"ADD",$listname);
+					unset($addarray);
 					}
 				elseif($type=='s')
 					{
-					$subarray[$subi]['CHUNKNUM'] = $chunknum;
-					$subarray[$subi]['HASHLEN'] = $hashlen;
-					$subarray[$subi]['CHUNKLEN'] = $chunklen;	
-					$subi++;
+					$subarray['CHUNKNUM'] = $chunknum;
+					$subarray['HASHLEN'] = $hashlen;
+					$subarray['CHUNKLEN'] = $chunklen;	
+					$this->saveChunkPart($subarray,"SUB",$listname);
+					unset($subarray);
 					}
 				else
 					{
@@ -293,17 +322,19 @@ class phpGSB
 				}
 			$clonedata = trim(substr($splithead[1],$chunklen));
 			}
-		return array("Subs"=>$subarray,"Adds"=>$addarray);
+		return true;
 		}
 	/*Saves processed data to the MySQL database*/	
-	function saveChunks($processeddata,$listname)
+	function saveChunkPart($data,$type,$listname)
 		{
-		  //First lets insert sub data
+		$listname = trim($listname);
+		  //Check what type of data it is...
 		  $buildindex = array();
 		  $buildhost = array();
 		  $buildpairs = array();
-		  foreach($processeddata['Subs'] as $key=>$value)
-			  {
+		  if($type=="SUB")
+		  	{
+			 $value = $data;
 			  if(!isset($this->mainlist['s'][$listname][$value['CHUNKNUM']]))
 				  {
 				  $this->mainlist['s'][$listname][$value['CHUNKNUM']] = true;
@@ -322,44 +353,16 @@ class phpGSB
 									} else {
 										$buildpairs[] = "('{$newvalue['HOSTKEY']}','{$innervalue['ADDCHUNKNUM']}','','')";
 										}
-
 								  }				
 							  }	
 						  }	
 					  }
 				  }
-			  }
-		  if(count($buildindex)>0)
-			  {
-		  //Insert index value
-		  $indexinsert = implode(', ',$buildindex);
-		  $indexins = mysql_query("INSERT INTO `$listname-s-index` (`ChunkNum`,`Chunklen`) VALUES $indexinsert;");
-		  if($indexins)
-			  {
-			if(count($buildhost)>0)
-				{
-			//Insert hostkeys index
-			$hostinsert = implode(', ',$buildhost);
-			mysql_query("INSERT INTO `$listname-s-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
-			$this->outputmsg("INSERTED $listname SUB HOST KEYS ".mysql_error());
-				}
-			if(count($buildpairs)>0)
-				{
-			//Insert prefixes
-			$pairinsert = implode(', ',$buildpairs);
-			mysql_query("INSERT INTO `$listname-s-prefixes` (`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
-			$this->outputmsg("INSERTED $listname SUB PREFIX KEYS ".mysql_error());
-				}
-			  }
-		  else
-			  $this->outputmsg("COULD NOT SAVE $listname SUB INDEXS ".mysql_error());
-			  }
+			}
+		else if($type=="ADD")
+			{
 		  //Then lets insert add data
-		  $buildindex = array();
-		  $buildhost = array();
-		  $buildpairs = array();
-		  foreach($processeddata['Adds'] as $key=>$value)
-			  {
+		  $value = $data;
 			  if(!isset($this->mainlist['a'][$listname][$value['CHUNKNUM']]))
 				  {
 				  $this->mainlist['a'][$listname][$value['CHUNKNUM']] = true;
@@ -383,33 +386,45 @@ class phpGSB
 						  }	
 					  }
 				  }
-			  }
-		  if(count($buildindex)>0)
-			  {
-		  //Insert index value
-		  $indexinsert = implode(', ',$buildindex);
-		  $indexins = mysql_query("INSERT INTO `$listname-a-index` (`ChunkNum`,`Chunklen`) VALUES $indexinsert;");
-		  if($indexins)
-			  {
-			if(count($buildhost)>0)
+			}
+		if(count($buildindex)>0)
+			{
+			if($type=="ADD")
+				$listtype = 'a';
+			elseif($type=="SUB")
+				$listtype = 's';
+			//Insert index value
+			$indexinsert = implode(', ',$buildindex);
+			$indexins = mysql_query("INSERT INTO `$listname-$listtype-index` (`ChunkNum`,`Chunklen`) VALUES $indexinsert;");
+			$error = mysql_error();
+			if($indexins)
 				{
-			//Insert hostkeys index
-			$hostinsert = implode(', ',$buildhost);
-			mysql_query("INSERT INTO `$listname-a-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
-			$this->outputmsg("INSERTED $listname ADD HOST KEYS ".mysql_error());
+				if(count($buildhost)>0)
+					{
+					//Insert hostkeys index
+					 $hostinsert = implode(', ',$buildhost);
+					mysql_query("INSERT INTO `$listname-$listtype-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
+					$error = mysql_error();
+					if(!empty($error))
+						$this->outputmsg("INSERTED $listname $type HOST KEYS ".mysql_error());
+					}
+				if(count($buildpairs)>0)
+					{
+					//Insert prefixes
+					$pairinsert = implode(', ',$buildpairs);
+					if($type=="ADD")
+						mysql_query("INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+					elseif($type=="SUB")
+						mysql_query("INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+					$error = mysql_error();
+					if(!empty($error))
+						$this->outputmsg("INSERTED $listname $type PREFIX HOST KEYS ".mysql_error());
+					}
 				}
-			if(count($buildpairs)>0)
-				{
-			//Insert prefixes
-			$pairinsert = implode(', ',$buildpairs);
-			mysql_query("INSERT INTO `$listname-a-prefixes` (`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
-			$this->outputmsg("INSERTED $listname PREFIX HOST KEYS ".mysql_error());
-				}
-			  }
-		  else
-			  $this->outputmsg("COULD NOT SAVE $listname ADD INDEXS ".mysql_error());
-			  }
-		  }	
+			elseif(!empty($error))
+				$this->outputmsg("COULD NOT SAVE $listname $type INDEXS ".mysql_error());
+			}
+		}	
 	/*Get ranges of existing chunks from a requested list
 	  and type (add [a] or sub [s] return them and set
 	  mainlist to recieved for that chunk (prevent dupes)*/
@@ -511,6 +526,7 @@ class phpGSB
 		{
 		if(empty($body))
 			$this->fatalerror("Missing a body for data request");
+		$this->trans_begin();
 		$buildopts = array(CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body."\n");
 		$result = $this->googleDownloader("http://safebrowsing.clients.google.com/safebrowsing/downloads?client=api&apikey=".$this->apikey."&appver=".$this->version."&pver=".$this->apiversion,$buildopts,"data");
 		preg_match('/^n:(.*)$/m', $result[1], $match);
@@ -540,8 +556,7 @@ class phpGSB
 						if(substr_count($valueinner,"u:")>0)
 							{
 							$chunkdata = $this->googleDownloader('http://'.trim(str_replace('u:','',$valueinner)),false,"data");
-							$processed = $this->processChunks($chunkdata[1]);
-							$this->saveChunks($processed,$listname);
+							$processed = $this->processChunks($chunkdata[1],$listname);
 							$this->outputmsg("Saved a chunk file");
 							}
 						elseif(substr_count($valueinner,"ad:")>0)
@@ -579,6 +594,8 @@ class phpGSB
 				$this->outputmsg('No data available in list');	
 				}
 			}
+		$this->trans_commit();
+		return true;
 		}
 	/*Shortcut to run updater*/
 	function runUpdate()
