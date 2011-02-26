@@ -17,3 +17,7 @@ Upgrade from 0.1.* to 0.2
 rearrangement in the functions of the class and so those not using
 runUpdate() (and who are accessing functions directly) may need to
 check their code.
+
+NOTE: Upgrade may take some time on established databases for MySQL
+to convert records over to the InnoDB system. (Required to provide
+performance improvements in long term.)
