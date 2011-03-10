@@ -1,7 +1,7 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2 (ALPHA) - Not recommended for production use
+Version 0.2.1 (ALPHA) - Not recommended for production use
 Released under New BSD License (see LICENSE)
 Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2";
+	var $realversion= "0.2.1";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -21,6 +21,7 @@ class phpGSB
 	var $mainlist	= array();
 	var $verbose	= true;
 	var $transtarted= false;
+	var $transenabled=true;
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
 	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
@@ -40,15 +41,26 @@ class phpGSB
 		{
 		$this->verbose = false;	
 		}
+	function trans_disable()
+		{
+		$this->transenabled = false;	
+		}
+	function trans_enable()
+		{
+		$this->transenabled = true;	
+		}
 	function trans_begin()
 		{
-		$this->transtarted = true;
-		$this->outputmsg("Begin MySQL Transaction");
-		mysql_query("BEGIN");	
+		if($this->transenabled)
+			{
+			$this->transtarted = true;
+			$this->outputmsg("Begin MySQL Transaction");
+			mysql_query("BEGIN");
+			}
 		}
 	function trans_commit()
 		{
-		if($this->transtarted&&mysql_ping())
+		if($this->transtarted&&mysql_ping()&&$this->transenabled)
 			{
 			$this->transtarted = false;
 			$this->outputmsg("Comitting Transaction");
@@ -57,7 +69,7 @@ class phpGSB
 		}
 	function trans_rollback()
 		{
-		if($this->transtarted&&mysql_ping())
+		if($this->transtarted&&mysql_ping()&&$this->transenabled)
 			{
 			$this->transtarted = false;
 			$this->outputmsg("Rolling Back Transaction");
@@ -1083,7 +1095,7 @@ class phpGSB
 			$listname = $chunkinfo[0];
 			$addchunk = $chunkinfo[1];
 			$chunklen = $chunkinfo[2];
-			$chunkdata = bin2hex(substr(trim($splithead[1]),0,$chunklen));
+			$chunkdata = bin2hex(substr($splithead[1],0,$chunklen));
 			while(strlen($chunkdata)>0)
 						{
 						$extracthash[$listname][$addchunk] = substr($chunkdata,0,64);

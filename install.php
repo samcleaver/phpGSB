@@ -1,7 +1,7 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2 (ALPHA) - Not recommended for production use
+Version 0.2.1 (ALPHA) - Not recommended for production use
 Released under New BSD License (see LICENSE)
 Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
@@ -34,7 +34,8 @@ foreach($phpgsb->usinglists as $value)
   `Hostkey` varchar(8) NOT NULL,
   `Prefix` varchar(255) NOT NULL,
   `FullHash` varchar(70) NOT NULL,
-  PRIMARY KEY  (`ID`)
+  PRIMARY KEY  (`ID`),
+  KEY `Hostkey` (`Hostkey`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;");	
 	//Create SUB tables
 	mysql_query("CREATE TABLE IF NOT EXISTS `$value-s-hosts` (
@@ -57,7 +58,8 @@ foreach($phpgsb->usinglists as $value)
   `AddChunkNum` varchar(8) NOT NULL,
   `Prefix` varchar(255) NOT NULL,
   `FullHash` varchar(70) NOT NULL,
-  PRIMARY KEY  (`ID`)
+  PRIMARY KEY  (`ID`),
+  KEY `Hostkey` (`Hostkey`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1 ;");
 	}
 //Check timeout files writable
