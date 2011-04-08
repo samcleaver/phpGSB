@@ -19,3 +19,9 @@ Install Steps
 	update every minute but will ping the check file.
 	This is required in case of Backoff procedures and 
 	timeouts'.
+IMPORTANT
+NOTE: The database is updated in chunks, because of this you need
+to leave the updater script (listupdater.php) on the 1 minute cron
+for at least 12 hours (24 hours is safest). This it to allow it to
+syncronise with Google's servers. This must be done before you can
+use the lookup functions.
