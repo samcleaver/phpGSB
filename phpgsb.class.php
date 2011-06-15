@@ -1,7 +1,7 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2.1 (ALPHA) - Not recommended for production use
+Version 0.2.2 (BETA)
 Released under New BSD License (see LICENSE)
 Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
@@ -22,6 +22,7 @@ class phpGSB
 	var $verbose	= true;
 	var $transtarted= false;
 	var $transenabled=true;
+	var $pingfilepath=""; //This is the path used to store the ping/last update files. (Must inc. trailing slash)
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
 	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
@@ -149,19 +150,19 @@ class phpGSB
 			$file = 'nextcheck.dat';
 		else
 			$file = 'nextcheckl.dat';
-		$curstatus = explode('||',file_get_contents($file));
+		$curstatus = explode('||',file_get_contents($this->pingfilepath.$file));
 		$curstatus[1] = $curstatus[1] + 1;
 		$seconds = $this->calc($curstatus[1]);
 		$until = time()+$seconds.'||'.$curstatus[1];
-		file_put_contents($file,$until);
+		file_put_contents($this->pingfilepath.$file,$until);
 		$this->fatalerror(array("Invalid Response... Backing Off",$errdata));	
 		}
 	/*Writes timeout from valid requests to nextcheck file*/
 	function setTimeout($seconds)
 		{
-		$curstatus = explode('||',file_get_contents('nextcheck.dat'));
+		$curstatus = explode('||',file_get_contents($this->pingfilepath.'nextcheck.dat'));
 		$until = time()+$seconds.'||'.$curstatus[1];
-		file_put_contents('nextcheck.dat',$until);	
+		file_put_contents($this->pingfilepath.'nextcheck.dat',$until);	
 		}
 	/*Checks timeout in timeout files (usually performed at the
 	  start of script)*/
@@ -171,7 +172,7 @@ class phpGSB
 			$file = 'nextcheck.dat';
 		else
 			$file = 'nextcheckl.dat';
-		$curstatus = explode('||',file_get_contents($file));
+		$curstatus = explode('||',file_get_contents($this->pingfilepath.$file));
 		if(time()<$curstatus[0])
 			{
 			$this->fatalerror("Must wait another ".($curstatus[0]-time()). " seconds before another request");
@@ -814,10 +815,13 @@ class phpGSB
 				{
 				$threeparts = dechex($ipcomponents[1]);
 				$hexplode = preg_split('//', $threeparts, -1, PREG_SPLIT_NO_EMPTY);
-				$newip = $ipcomponents[0].'.'.$this->iphexdec($hexplode[0].$hexplode[1]).'.'.$this->iphexdec($hexplode[2].$hexplode[3]).'.'.$this->iphexdec($hexplode[4].$hexplode[5]);
-				//Now check if its valid
-				if($this->is_ip($newip))
-					return $newip;
+				if(count($hexplode)>4)
+					{
+					$newip = $ipcomponents[0].'.'.$this->iphexdec($hexplode[0].$hexplode[1]).'.'.$this->iphexdec($hexplode[2].$hexplode[3]).'.'.$this->iphexdec($hexplode[4].$hexplode[5]);
+					//Now check if its valid
+					if($this->is_ip($newip))
+						return $newip;
+					}
 				}	
 			}
 		$ipcomponents[1] = $this->hexoct2dec($ipcomponents[1]);
@@ -828,26 +832,33 @@ class phpGSB
 				{
 				$twoparts = dechex($ipcomponents[2]);
 				$hexplode = preg_split('//', $twoparts, -1, PREG_SPLIT_NO_EMPTY);
-				$newip = $ipcomponents[0].'.'.$ipcomponents[1].'.'.$this->iphexdec($hexplode[0].$hexplode[1]).'.'.$this->iphexdec($hexplode[2].$hexplode[3]);
-				//Now check if its valid
-				if($this->is_ip($newip))
-					return $newip;
+				if(count($hexplode)>3)
+					{
+					$newip = $ipcomponents[0].'.'.$ipcomponents[1].'.'.$this->iphexdec($hexplode[0].$hexplode[1]).'.'.$this->iphexdec($hexplode[2].$hexplode[3]);
+					//Now check if its valid
+					if($this->is_ip($newip))
+						return $newip;
+					}
 				}	
 			}
 		//If not it may be a combination of hex and octal
-		$tmpcomponents = array($ipcomponents[2],$ipcomponents[3]);
-		foreach($tmpcomponents as $key=>$value)
-			{
-			if(!$tmpcomponents[$key] = $this->hexoct2dec($value))
-				return false;	
-			}
-		array_unshift($tmpcomponents,$ipcomponents[0],$ipcomponents[1]);
-		//Convert back to IP form
-		$newip = implode('.',$tmpcomponents);
-		
-		//Now check if its valid
-		if($this->is_ip($newip))
-			return $newip;
+		if(count($ipcomponents)>=4)
+		  {
+		  $tmpcomponents = array($ipcomponents[2],$ipcomponents[3]);
+		  foreach($tmpcomponents as $key=>$value)
+			  {
+			  if(!$tmpcomponents[$key] = $this->hexoct2dec($value))
+				  return false;	
+			  }
+		  
+		  array_unshift($tmpcomponents,$ipcomponents[0],$ipcomponents[1]);
+		  //Convert back to IP form
+		  $newip = implode('.',$tmpcomponents);
+		  
+		  //Now check if its valid
+		  if($this->is_ip($newip))
+			  return $newip;
+		  }
 	
 		//Well its not an IP that we can recognise... theres only so much we can do!
 		return false;
@@ -943,6 +954,8 @@ class phpGSB
 			}
 		if(substr($path,-1,1)=="/")
 			$append = "/";
+		else
+			$append = false;
 		$path = "/".implode("/",$pathparts);
 		if($append&&substr($path,-1,1)!="/")
 			$path .= $append;
