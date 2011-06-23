@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2.1";
+	var $realversion= "0.2.2";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -1384,7 +1384,7 @@ class phpGSB
 						}
 					else
 						{
-						$subchk = $this->subCheck($value,array($row['Hostkey']),"hostkey");
+						$subchk = $this->subCheck($value,array(array($row['Hostkey'],$row['Chunknum'])),"hostkey");
 						if(!$subchk)
 							{
 							//There was a match but the count was 0 that entire domain could be a match, Send off to check
