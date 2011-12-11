@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2.2";
+	var $realversion= "0.2.3";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -100,9 +100,9 @@ class phpGSB
 			echo '...<br/>';
 			$this->ob .= ob_get_contents();
 			ob_end_flush();
-			die();
 			}
 		$this->trans_rollback();
+		die();
 		}
 	/*Wrapper to connect to database. Simples.*/
 	function dbConnect($database,$username,$password,$host="localhost")
