@@ -1,7 +1,7 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2.2 (BETA)
+Version 0.2.3
 Released under New BSD License (see LICENSE)
 Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
