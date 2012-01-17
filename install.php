@@ -2,7 +2,7 @@
 /*
 phpGSB - PHP Google Safe Browsing Implementation
 Released under New BSD License (see LICENSE)
-Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
+Copyright (c) 2010-2012, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 
 INITIAL INSTALLER - RUN ONCE (or more than once if you're adding a new list!)

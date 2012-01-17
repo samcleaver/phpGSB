@@ -1,9 +1,9 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2.3
+Version 0.2.4
 Released under New BSD License (see LICENSE)
-Copyright (c) 2010-2011, Sam Cleaver (Beaver6813, Beaver6813.com)
+Copyright (c) 2010-2012, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 */
 ob_start();
@@ -11,7 +11,7 @@ class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2.3";
+	var $realversion= "0.2.4";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
@@ -671,50 +671,42 @@ class phpGSB
 				
 			}
 		}
-	/*From PHP.NET thanks to FredLudd at gmail dot com and theoriginalmarksimpson at gmail dot com
-	  Parses URL into its component parts, decided to use this against inbuilt function as it
-	  appears to be more accurate and flexible*/
+	/*Special thanks Steven Levithan (stevenlevithan.com) for the ridiculously complicated regex
+	  required to parse urls. This is used over parse_url as it robustly provides access to 
+	  port, userinfo etc and handles mangled urls very well. 
+	  Expertly integrated into phpGSB by Sam Cleaver ;)
+	  Thanks to mikegillis677 for finding the seg. fault issue in the old function.
+	  Passed validateMethod() check on 17/01/12*/
 	function j_parseUrl($url) 
 		{
-		  $r  = "(?:([a-z0-9+-._]+)://)?";
-		  $r .= "(?:";
-		  $r .=   "(?:((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9a-f]{2})*)@)?";
-		  $r .=   "(?:\[((?:[a-z0-9:])*)\])?";
-		  $r .=   "((?:[a-z0-9-._~!$&'()*+,;=]|%[0-9a-f]{2})*)";
-		  $r .=   "(?::(\d*))?";
-		  $r .=   "(/(?:[a-z0-9-._~!$&'()*+,;=:@/]|%[0-9a-f]{2})*)?";
-		  $r .=   "|";
-		  $r .=   "(/?";
-		  $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+";
-		  $r .=     "(?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9a-f]{2})*";
-		  $r .=    ")?";
-		  $r .= ")";
-		  $r .= "(?:\?((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
-		  $r .= "(?:#((?:[a-z0-9-._~!$&'()*+,;=:\/?@]|%[0-9a-f]{2})*))?";
-		  preg_match("`$r`i", $url, $match);
-		  $parts = array(
-					"scheme"=>'',
-					"userinfo"=>'',
-					"authority"=>'',
-					"host"=> '',
-					"port"=>'',
-					"path"=>'',
-					"query"=>'',
-					"fragment"=>'');
-		  switch (count ($match)) {
-			case 10: $parts['fragment'] = $match[9];
-			case 9: $parts['query'] = $match[8];
-			case 8: $parts['path'] =  $match[7];
-			case 7: $parts['path'] =  $match[6] . $parts['path'];
-			case 6: $parts['port'] =  $match[5];
-			case 5: $parts['host'] =  $match[3]?"[".$match[3]."]":$match[4];
-			case 4: $parts['userinfo'] =  $match[2];
-			case 3: $parts['scheme'] =  $match[1];
+		$strict = '/^(?:([^:\/?#]+):)?(?:\/\/\/?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?(((?:\/(\w:))?((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/';
+		$loose = '/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/\/?)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((?:\/(\w:))?(\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/';
+		preg_match($loose, $url, $match);
+		if(empty($match))
+			{
+			//As odd as its sounds, we'll fall back to strict (as technically its more correct and so may salvage completely mangled urls)
+			unset($match);
+			preg_match($strict, $url, $match);
+			}
+		$parts = array("source"=>'',"scheme"=>'',"authority"=>'',"userinfo"=>'',"user"=>'',"password"=>'',"host"=>'',"port"=>'',"relative"=>'',"path"=>'',"drive"=>'',"directory"=>'',"file"=>'',"query"=>'',"fragment"=>'');
+		  switch (count ($match)) {  
+			case 15: $parts['fragment'] = $match[14];
+			case 14: $parts['query'] = $match[13];
+			case 13: $parts['file'] =  $match[12];
+			case 12: $parts['directory'] =  $match[11];
+			case 11: $parts['drive'] =  $match[10];
+			case 10: $parts['path'] =  $match[9];
+			case 9: $parts['relative'] =  $match[8];
+			case 8: $parts['port'] =  $match[7];
+			case 7: $parts['host'] =  $match[6];
+			case 6: $parts['password'] =  $match[5];
+			case 5: $parts['user'] =  $match[4];
+			case 4: $parts['userinfo'] =  $match[3];
+			case 3: $parts['authority'] =  $match[2];
+			case 2: $parts['scheme'] =  $match[1];
+			case 1: $parts['source'] =  $match[0];
 		  }
-		  $parts['authority'] = ($parts['userinfo']?$parts['userinfo']."@":"").
-								 $parts['host'].
-								($parts['port']?":".$parts['port']:"");
-		  return $parts;
+		return $parts;
 		}
 	/*Regex to check if its a numerical IP address*/
 	function is_ip($ip) 
