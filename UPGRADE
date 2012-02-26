@@ -33,4 +33,10 @@ Upgrade from 0.2 to 0.2.1
 rearrangement in the functions of the class and so those not using
 runUpdate() (and who are accessing functions directly) may need to
 check their code.
+------------------------------------------------------------
+Upgrade from 0.2.3 to 0.2.4
 
+1) An updating bug has been fixed, this affects all installations.
+Please run the associated update script (upgrade-0.2.3_to_0.2.4.php)
+This will clear your database and allow it to re-update. This is 
+required in order to get bad or missing chunks.

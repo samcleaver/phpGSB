@@ -239,7 +239,7 @@ class phpGSB
 				$tmparray = array();
 				//Convert to hex for easy processing
 				//First get chunkdata according to length
-				$chunkdata = bin2hex(substr(trim($splithead[1]),0,$chunklen));
+				$chunkdata = bin2hex(substr($splithead[1],0,$chunklen));
 				if($type=='a')
 					{
 					$maini = 0;
@@ -333,7 +333,7 @@ class phpGSB
 					$this->outputmsg("DISCARDED CHUNKNUM: $chunknum (Empty)");
 					}
 				}
-			$clonedata = trim(substr($splithead[1],$chunklen));
+			$clonedata = substr($splithead[1],$chunklen);
 			}
 		return true;
 		}
