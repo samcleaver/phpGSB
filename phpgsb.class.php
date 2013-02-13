@@ -160,8 +160,12 @@ class phpGSB
 	/*Writes timeout from valid requests to nextcheck file*/
 	function setTimeout($seconds)
 		{
-		$curstatus = explode('||',file_get_contents($this->pingfilepath.'nextcheck.dat'));
-		$until = time()+$seconds.'||'.$curstatus[1];
+		if (file_exists($this->pingfilepath.'nextcheck.dat')) {
+			$curstatus = explode('||',@file_get_contents($this->pingfilepath.'nextcheck.dat'));
+			$until = time()+$seconds.'||'.$curstatus[1];
+		} else {
+			$until = time()+$seconds.'||';
+		}
 		file_put_contents($this->pingfilepath.'nextcheck.dat',$until);	
 		}
 	/*Checks timeout in timeout files (usually performed at the
@@ -447,6 +451,7 @@ class phpGSB
 		$results = mysql_query("SELECT ChunkNum FROM `$checktable` ORDER BY `ChunkNum` ASC");
 		$ranges = array();
 		$i = 0;
+		$start = 0;
 		while ($row = mysql_fetch_array($results, MYSQL_BOTH))
 			{
 			$this->mainlist[$mode][$listname][$row['ChunkNum']] = true;
