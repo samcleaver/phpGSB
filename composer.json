@@ -4,6 +4,7 @@
     "keywords":["php","google","gsf", "google safe browsing"],
     "type":"library",
     "license":"BSD-3-Clause",
+    "version": "0.2.4",
     "authors":[
         {
             "name":"Sam Cleaver",
