@@ -12,13 +12,21 @@ At current it *does not* allow the following:
 
 The main class is definitely not as efficient as it could be and has developed very quickly to meet the basic GSB specification; any contributions, bug fixes etc are **very** welcome! 
 
+## Download
+
+* Installation using composer
+```
+$ composer require samcleaver/phpgsb
+```
+
+* You could manually download phpgsb by this link: https://github.com/samcleaver/phpGSB/archive/0.2.4.zip
+
 ## Installation
 
-1. Upload all files to your server and create an empty database (with a user and password assigned).
-2. Enter database details into install.php (Replace DATABASE_USERNAME, DATABASE_NAME and DATABASE_PASSWORD with respective information)
-3. Run install.php
-4. Look at listupdater.php and lookup.php example files for basic methods on using the system.
-5. If you choose to use listupdater.php as-is then set it as a cron job/scheduled task to run every minute. *(It won't actually update every minute but is required incase of backoff procedures and timeouts)* 
+1. Enter database details into install.php (Replace DATABASE_USERNAME, DATABASE_NAME and DATABASE_PASSWORD with respective information)
+2. Run install.php
+3. Look at listupdater.php and lookup.php example files for basic methods on using the system.
+4. If you choose to use listupdater.php as-is then set it as a cron job/scheduled task to run every minute. *(It won't actually update every minute but is required incase of backoff procedures and timeouts)*
 
 ## FAQ
 
