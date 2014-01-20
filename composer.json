@@ -1,0 +1,23 @@
+{
+    "name":"samcleaver/phpgsb",
+    "description":"PHP Google Safe Browsing",
+    "keywords":["php","google","gsf", "google safe browsing"],
+    "type":"library",
+    "license":"BSD-3-Clause",
+    "version": "0.2.4",
+    "authors":[
+        {
+            "name":"Sam Cleaver",
+            "homepage":"https://github.com/samcleaver"
+        }
+    ],
+    "homepage": "https://github.com/samcleaver/phpgsb",
+    "require":{
+        "php":">=5.3.0"
+    },
+    "autoload":{
+        "classmap": [
+            "phpgsb.class.php"
+        ]
+    }
+}
