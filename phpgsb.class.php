@@ -1350,9 +1350,9 @@ class phpGSB
 							{
 							$prefixes = $this->makePrefixes($canurl['Parts']['Host'],$canurl['Parts']['Path'],$canurl['Parts']['Query'],$canurl['Parts']['IP']);
 							$buildprequery = array();
-							foreach($prefixes as $key=>$value)
+							foreach($prefixes as $prefix)
 								{
-								$buildprequery[] = " `Prefix` = '{$value['Prefix']}' ";	
+								$buildprequery[] = " `Prefix` = '{$prefix['Prefix']}' ";
 								}
 							$buildprequery = implode("OR",$buildprequery);
 							}
