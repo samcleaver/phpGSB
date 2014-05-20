@@ -532,7 +532,7 @@ class phpGSB
             if (count($buildprefixdel)) {
                 //Delete all matching hostkey prefixes
                 mysql_query(
-                    "DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` in (" . implode(',', $buildprefixdel) . ")"
+                    "DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` in ('" . implode('\',\'', $buildprefixdel) . "')"
                 );
             }
 				
