@@ -529,9 +529,12 @@ class phpGSB
 				if(!empty($row['Hostkey']))
 					$buildprefixdel[] = $row['Hostkey'];
 				}
-			$mergeprefixdel = implode("' OR `Hostkey` = '",$buildprefixdel);
-			//Delete all matching hostkey prefixes
-			mysql_query("DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '$mergeprefixdel'");
+            if (count($buildprefixdel)) {
+                //Delete all matching hostkey prefixes
+                mysql_query(
+                    "DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` in ('" . implode('\',\'', $buildprefixdel) . "')"
+                );
+            }
 				
 			//Delete all matching hostkeys
 			mysql_query("DELETE FROM `$buildtrunk-hosts` WHERE $clause");	
@@ -1350,9 +1353,9 @@ class phpGSB
 							{
 							$prefixes = $this->makePrefixes($canurl['Parts']['Host'],$canurl['Parts']['Path'],$canurl['Parts']['Query'],$canurl['Parts']['IP']);
 							$buildprequery = array();
-							foreach($prefixes as $key=>$value)
+							foreach($prefixes as $prefix)
 								{
-								$buildprequery[] = " `Prefix` = '{$value['Prefix']}' ";	
+								$buildprequery[] = " `Prefix` = '{$prefix['Prefix']}' ";
 								}
 							$buildprequery = implode("OR",$buildprequery);
 							}
