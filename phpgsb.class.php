@@ -6,7 +6,6 @@ Released under New BSD License (see LICENSE)
 Copyright (c) 2010-2012, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 */
-ob_start();
 class phpGSB
 	{
 	var $apikey 	= "";	
@@ -84,9 +83,10 @@ class phpGSB
 		{
 		if($this->verbose)
 			{
+            ob_start();
 			echo $msg.'...<br/>';
 			$this->ob .= ob_get_contents();
-			ob_flush();
+            ob_end_flush();
 			}
 		}
 	/*Function to output errors, used instead of echo,
@@ -96,6 +96,7 @@ class phpGSB
 		{
 		if($this->verbose)
 			{
+            ob_start();
 			print_r($msg);
 			echo '...<br/>';
 			$this->ob .= ob_get_contents();
@@ -1401,4 +1402,3 @@ class phpGSB
 			
 		}	
 	}
-?>
