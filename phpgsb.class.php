@@ -1,16 +1,16 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2.4
+Version 0.2.5
 Released under New BSD License (see LICENSE)
-Copyright (c) 2010-2012, Sam Cleaver (Beaver6813, Beaver6813.com)
+Copyright (c) 2010-2014, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 */
 class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2.4";
+	var $realversion= "0.2.5";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
