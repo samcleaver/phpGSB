@@ -19,7 +19,7 @@ The main class is definitely not as efficient as it could be and has developed v
 $ composer require samcleaver/phpgsb
 ```
 
-* You could manually download phpgsb by this link: https://github.com/samcleaver/phpGSB/archive/0.2.5.zip
+* You could manually download phpgsb by this link: https://github.com/samcleaver/phpGSB/archive/0.2.6.zip
 
 ## Installation
 
@@ -38,7 +38,7 @@ $ composer require samcleaver/phpgsb
 The phpGSB library is released under the New BSD License.
 
 ```
-Copyright (c) 2010-2014, Sam Cleaver
+Copyright (c) 2010-2015, Sam Cleaver
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

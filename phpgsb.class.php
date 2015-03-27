@@ -1,22 +1,22 @@
 <?php
 /*
 phpGSB - PHP Google Safe Browsing Implementation
-Version 0.2.5
+Version 0.2.6
 Released under New BSD License (see LICENSE)
-Copyright (c) 2010-2014, Sam Cleaver (Beaver6813, Beaver6813.com)
+Copyright (c) 2010-2015, Sam Cleaver (Beaver6813, Beaver6813.com)
 All rights reserved.
 */
 class phpGSB
 	{
 	var $apikey 	= "";	
 	var $version 	= "0.2";
-	var $realversion= "0.2.5";
+	var $realversion= "0.2.6";
 	//DO NOT CHANGE API VERSION
 	var $apiversion	= "2.2";
 	
 	var $ob			= "";
 	var $adminemail	= "";
-	var $usinglists = array('googpub-phish-shavar','goog-malware-shavar');
+	var $usinglists = array('googpub-phish-shavar','goog-malware-shavar', 'goog-unwanted-shavar');
 	var $mainlist	= array();
 	var $verbose	= true;
 	var $transtarted= false;
