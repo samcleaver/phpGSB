@@ -25,13 +25,13 @@ class phpGSB
 	private $dbLink; // mysql connection link
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
-	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
+	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$port=3306,$verbose=true)
 		{
 		if(!$verbose)
 			$this->silent();
 		$this->outputmsg("phpGSB Loaded");
 		if($database&&$username)	
-			$this->dbConnect($database,$username,$password,$host);
+			$this->dbConnect($database,$username,$password,$host,$port);
 		}
 	function close()
 		{
@@ -107,9 +107,9 @@ class phpGSB
 		die();
 		}
 	/*Wrapper to connect to database. Simples.*/
-	function dbConnect($database,$username,$password,$host="localhost")
+	function dbConnect($database,$username,$password,$host="localhost",$port=3306)
 		{
-		$this->dbLink = mysqli_connect($host, $username, $password);
+		$this->dbLink = mysqli_connect($host, $username, $password, '', $port);
 		if (!$this->dbLink) {
 			$this->fatalerror('Could not connect: ' . mysqli_error($this->dbLink));
 		}
