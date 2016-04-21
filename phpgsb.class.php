@@ -674,9 +674,9 @@ class phpGSB
 			$canit = $this->Canonicalize($key);
 			$canit = $canit['GSBURL'];
 			if($canit==$value)
-				outputmsg("<span style='color:green'>PASSED: $key</span>");
+				$this->outputmsg("<span style='color:green'>PASSED: $key</span>");
 			else
-				outputmsg("<span style='color:red'>INVALID: <br>ORIGINAL: $key<br>EXPECTED: $value<br>RECIEVED: $canit<br> </span>");
+				$this->outputmsg("<span style='color:red'>INVALID: <br>ORIGINAL: $key<br>EXPECTED: $value<br>RECIEVED: $canit<br> </span>");
 				
 			}
 		}
