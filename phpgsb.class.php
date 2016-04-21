@@ -22,19 +22,20 @@ class phpGSB
 	var $transtarted= false;
 	var $transenabled=true;
 	var $pingfilepath=""; //This is the path used to store the ping/last update files. (Must inc. trailing slash)
+	private $dbLink; // mysql connection link
 	//GENERIC FUNCTIONS (USED BY BOTH LOOKUP AND UPDATER)
 	/*Automatically connect to database on calling class*/
-	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$verbose=true)
+	function phpGSB($database=false,$username=false,$password=false,$host="localhost",$port=3306,$verbose=true)
 		{
 		if(!$verbose)
 			$this->silent();
 		$this->outputmsg("phpGSB Loaded");
 		if($database&&$username)	
-			$this->dbConnect($database,$username,$password,$host);
+			$this->dbConnect($database,$username,$password,$host,$port);
 		}
 	function close()
 		{
-		mysql_close();	
+		mysqli_close($this->dbLink);	
 		$this->outputmsg("Closing phpGSB. (Peak Memory: ".(round(memory_get_peak_usage()/1048576,3))."MB)");
 		}
 	function silent()
@@ -55,25 +56,25 @@ class phpGSB
 			{
 			$this->transtarted = true;
 			$this->outputmsg("Begin MySQL Transaction");
-			mysql_query("BEGIN");
+			mysqli_query($this->dbLink, "BEGIN");
 			}
 		}
 	function trans_commit()
 		{
-		if($this->transtarted&&mysql_ping()&&$this->transenabled)
+		if($this->transtarted&&mysqli_ping($this->dbLink)&&$this->transenabled)
 			{
 			$this->transtarted = false;
 			$this->outputmsg("Comitting Transaction");
-			mysql_query("COMMIT");
+			mysqli_query($this->dbLink, "COMMIT");
 			}
 		}
 	function trans_rollback()
 		{
-		if($this->transtarted&&mysql_ping()&&$this->transenabled)
+		if($this->transtarted&&mysqli_ping($this->dbLink)&&$this->transenabled)
 			{
 			$this->transtarted = false;
 			$this->outputmsg("Rolling Back Transaction");
-			mysql_query("ROLLBACK");
+			mysqli_query($this->dbLink, "ROLLBACK");
 			}
 		}
 	/*Function to output messages, used instead of echo,
@@ -106,18 +107,22 @@ class phpGSB
 		die();
 		}
 	/*Wrapper to connect to database. Simples.*/
-	function dbConnect($database,$username,$password,$host="localhost")
+	function dbConnect($database,$username,$password,$host="localhost",$port=3306)
 		{
-		$link = mysql_connect($host, $username, $password);
-		if (!$link) {
-			$this->fatalerror('Could not connect: ' . mysql_error());
+		$this->dbLink = mysqli_connect($host, $username, $password, '', $port);
+		if (!$this->dbLink) {
+			$this->fatalerror('Could not connect: ' . mysqli_error($this->dbLink));
 		}
 		$this->outputmsg('Connected successfully to database server');
-		$db_selected = mysql_select_db($database, $link);
+		$db_selected = mysqli_select_db($this->dbLink, $database);
 		if (!$db_selected) {
-			$this->fatalerror('Can\'t use $database : ' . mysql_error());
+			$this->fatalerror('Can\'t use $database : ' . mysqli_error($this->dbLink));
 		}
 		$this->outputmsg('Connected to database successfully');		
+		}
+	public function getDbLink()
+		{
+			return $this->dbLink;
 		}
 	/*Simple logic function to calculate timeout
 	  based on the number of previous errors*/			
@@ -216,12 +221,12 @@ class phpGSB
 			mail($this->adminemail,'Reset Database Request Issued','For some crazy unknown reason GSB requested a database reset at '.time());
 		foreach($this->usinglists as $value)
 			{
-			mysql_query("TRUNCATE TABLE `$value-s-index`");	
-			mysql_query("TRUNCATE TABLE `$value-s-hosts`");	
-			mysql_query("TRUNCATE TABLE `$value-s-prefixes`");	
-			mysql_query("TRUNCATE TABLE `$value-a-index`");	
-			mysql_query("TRUNCATE TABLE `$value-a-hosts`");	
-			mysql_query("TRUNCATE TABLE `$value-a-prefixes`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-s-index`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-s-hosts`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-s-prefixes`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-a-index`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-a-hosts`");	
+			mysqli_query($this->dbLink, "TRUNCATE TABLE `$value-a-prefixes`");	
 			}
 		}
 	/*Processes data recieved from a GSB data request into a managable array*/
@@ -413,34 +418,34 @@ class phpGSB
 				$listtype = 's';
 			//Insert index value
 			$indexinsert = implode(', ',$buildindex);
-			$indexins = mysql_query("INSERT INTO `$listname-$listtype-index` (`ChunkNum`,`Chunklen`) VALUES $indexinsert;");
-			$error = mysql_error();
+			$indexins = mysqli_query($this->dbLink, "INSERT INTO `$listname-$listtype-index` (`ChunkNum`,`Chunklen`) VALUES $indexinsert;");
+			$error = mysqli_error($this->dbLink);
 			if($indexins)
 				{
 				if(count($buildhost)>0)
 					{
 					//Insert hostkeys index
 					 $hostinsert = implode(', ',$buildhost);
-					mysql_query("INSERT INTO `$listname-$listtype-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
-					$error = mysql_error();
+					mysqli_query($this->dbLink, "INSERT INTO `$listname-$listtype-hosts` (`Hostkey`,`Chunknum`,`Count`,`FullHash`) VALUES $hostinsert;");
+					$error = mysqli_error($this->dbLink);
 					if(!empty($error))
-						$this->outputmsg("INSERTED $listname $type HOST KEYS ".mysql_error());
+						$this->outputmsg("INSERTED $listname $type HOST KEYS ".mysqli_error($this->dbLink));
 					}
 				if(count($buildpairs)>0)
 					{
 					//Insert prefixes
 					$pairinsert = implode(', ',$buildpairs);
 					if($type=="ADD")
-						mysql_query("INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+						mysqli_query($this->dbLink, "INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`Prefix`,`FullHash`) VALUES $pairinsert;");
 					elseif($type=="SUB")
-						mysql_query("INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
-					$error = mysql_error();
+						mysqli_query($this->dbLink, "INSERT INTO `$listname-$listtype-prefixes` (`Hostkey`,`AddChunkNum`,`Prefix`,`FullHash`) VALUES $pairinsert;");
+					$error = mysqli_error($this->dbLink);
 					if(!empty($error))
-						$this->outputmsg("INSERTED $listname $type PREFIX HOST KEYS ".mysql_error());
+						$this->outputmsg("INSERTED $listname $type PREFIX HOST KEYS ".mysqli_error($this->dbLink));
 					}
 				}
 			elseif(!empty($error))
-				$this->outputmsg("COULD NOT SAVE $listname $type INDEXS ".mysql_error());
+				$this->outputmsg("COULD NOT SAVE $listname $type INDEXS ".mysqli_error($this->dbLink));
 			}
 		}	
 	/*Get ranges of existing chunks from a requested list
@@ -449,11 +454,11 @@ class phpGSB
 	function getRanges($listname,$mode)
 		{
 		$checktable = $listname.'-'.$mode.'-index';	
-		$results = mysql_query("SELECT ChunkNum FROM `$checktable` ORDER BY `ChunkNum` ASC");
+		$results = mysqli_query($this->dbLink, "SELECT ChunkNum FROM `$checktable` ORDER BY `ChunkNum` ASC");
 		$ranges = array();
 		$i = 0;
 		$start = 0;
-		while ($row = mysql_fetch_array($results, MYSQL_BOTH))
+		while ($row = mysqli_fetch_array($results, MYSQLI_BOTH))
 			{
 			$this->mainlist[$mode][$listname][$row['ChunkNum']] = true;
 			if($i==0)
@@ -518,27 +523,28 @@ class phpGSB
 		else
 			$clause = "`ChunkNum` = '$range'";
 		//Delete from index
-		mysql_query("DELETE FROM `$buildtrunk-index` WHERE $clause");
+		mysqli_query($this->dbLink, "DELETE FROM `$buildtrunk-index` WHERE $clause");
 		
 		//Select all host keys that match chunks (we'll delete them after but we need the hostkeys list!)
-		$result = mysql_query("SELECT `Hostkey` FROM `$buildtrunk-hosts` WHERE $clause");
+		$result = mysqli_query($this->dbLink, "SELECT `Hostkey` FROM `$buildtrunk-hosts` WHERE $clause");
 		$buildprefixdel = array();
-		if($result&&mysql_num_rows($result)>0)
+		if($result&&mysqli_num_rows($result)>0)
 			{
-			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+			while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 				{
 				if(!empty($row['Hostkey']))
 					$buildprefixdel[] = $row['Hostkey'];
 				}
             if (count($buildprefixdel)) {
                 //Delete all matching hostkey prefixes
-                mysql_query(
+                mysqli_query(
+                    $this->dbLink,
                     "DELETE FROM `$buildtrunk-prefixes` WHERE `Hostkey` in ('" . implode('\',\'', $buildprefixdel) . "')"
                 );
             }
 				
 			//Delete all matching hostkeys
-			mysql_query("DELETE FROM `$buildtrunk-hosts` WHERE $clause");	
+			mysqli_query($this->dbLink, "DELETE FROM `$buildtrunk-hosts` WHERE $clause");	
 			}
 		}
 	/*Main part of updater function, will call all other functions, merely requires 
@@ -1125,15 +1131,15 @@ class phpGSB
 		{
 		$buildtrunk = $listname."-a";
 		//First check hosts
-		$result = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `Chunknum` = '$chunknum'");
-		if($result&&mysql_num_rows($result)>0)
+		$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `Chunknum` = '$chunknum'");
+		if($result&&mysqli_num_rows($result)>0)
 			{
-			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+			while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 						  {
 						  if(empty($row['FullHash']))
 							  {
 							  //We've got a live one! Insert the full hash for it	
-							  $addresult = mysql_query("UPDATE `$buildtrunk-hosts` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");
+							  $addresult = mysqli_query($this->dbLink, "UPDATE `$buildtrunk-hosts` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");
 							  if(!$addresult)
 							  		$this->fatalerror("Could not cache full-hash key. $prefix, $chunknum, $fullhash, $listname");
 							  }
@@ -1142,17 +1148,17 @@ class phpGSB
 		else
 			{
 			//If there are no rows it must be a prefix	
-			$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix'");
-			while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+			$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix'");
+			while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 						  {
 						  if(empty($row['FullHash']))
 							  {
-							  $resulttwo = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}' AND `Chunknum` = '$chunknum'");
-							  while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
+							  $resulttwo = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}' AND `Chunknum` = '$chunknum'");
+							  while ($rowtwo = mysqli_fetch_array($resulttwo, MYSQLI_ASSOC))
 								  {
 								  if(hexdec($rowtwo['Count'])>0)
 									  {
-									  $addresult = mysql_query("UPDATE `$buildtrunk-prefixes` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");	
+									  $addresult = mysqli_query($this->dbLink, "UPDATE `$buildtrunk-prefixes` SET `FullHash` = '$fullhash' WHERE `ID` = '{$row['ID']}';");	
 									  if(!$addresult)
 										  $this->fatalerror("Could not cache full-hash key. $prefix, $chunknum, $fullhash, $listname");
 									  }
@@ -1168,23 +1174,23 @@ class phpGSB
 		foreach($this->usinglists as $value)
 			{
 			$buildtrunk = $value."-a";
-			$result = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `FullHash` != ''");
-			if($result&&mysql_num_rows($result)>0)
+			$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '$prefix' AND `FullHash` != ''");
+			if($result&&mysqli_num_rows($result)>0)
 				{
-				while($row = mysql_fetch_array($result, MYSQL_ASSOC))
+				while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 					{
 					return array($row['FullHash'],$row['Chunknum']);				
 					}	
 				}
 			else
 				{
-				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix' AND `FullHash` != ''");
-				if($result&&mysql_num_rows($result)>0)
+				$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '$prefix' AND `FullHash` != ''");
+				if($result&&mysqli_num_rows($result)>0)
 					{
-					while($row = mysql_fetch_array($result, MYSQL_ASSOC))
+					while($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 						{	
-						$resulttwo = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}'");
-						while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
+						$resulttwo = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$row['Hostkey']}'");
+						while ($rowtwo = mysqli_fetch_array($resulttwo, MYSQLI_ASSOC))
 									  {
 										if(hexdec($rowtwo['Count'])>0)
 										  {
@@ -1285,12 +1291,12 @@ class phpGSB
 			//Mode is prefix so the add part was a prefix, not a hostkey so we just check prefixes (saves a lookup)
 			foreach($prefixlist as $value)
 				{
-				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '{$value[0]}'");
-				if($result&&mysql_num_rows($result)>0)
+				$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-prefixes` WHERE `Prefix` = '{$value[0]}'");
+				if($result&&mysqli_num_rows($result)>0)
 				  {
 				  //As interpreted from Developer Guide if theres a match in sub list it cancels out the add listing
 				  //we'll double check its from the same chunk just to be pedantic
-				  while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+				  while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 					  {
 					  if(hexdec($row['AddChunkNum'])==$value[1])
 					  	return true;
@@ -1305,12 +1311,12 @@ class phpGSB
 			//Mode is hostkey
 			foreach($prefixlist as $value)
 				{
-				$result = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '{$value[0]}'");
-				if($result&&mysql_num_rows($result)>0)
+				$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-prefixes` WHERE `Hostkey` = '{$value[0]}'");
+				if($result&&mysqli_num_rows($result)>0)
 				  {
 				  //As interpreted from Developer Guide if theres a match in sub list it cancels out the add listing
 				  //we'll double check its from the same chunk just to be pedantic
-				  while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+				  while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 					  {
 					  if(hexdec($row['AddChunkNum'])==$value[1]&&empty($row['Prefix']))
 					  	return true;
@@ -1339,11 +1345,11 @@ class phpGSB
 			foreach($hostkeys as $keyinner=>$valueinner)
 				{
 				//Within each list loop over each hostkey	
-				$result = mysql_query("SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$valueinner['Prefix']}'");
-				if($result&&mysql_num_rows($result)>0)
+				$result = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-hosts` WHERE `Hostkey` = '{$valueinner['Prefix']}'");
+				if($result&&mysqli_num_rows($result)>0)
 				  {
 				  //For each hostkey match
-				  while ($row = mysql_fetch_array($result, MYSQL_ASSOC))
+				  while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC))
 					  {
 					  $nicecount = hexdec($row['Count']);
 					  if($nicecount>0)
@@ -1361,13 +1367,13 @@ class phpGSB
 							$buildprequery = implode("OR",$buildprequery);
 							}
 						//Check if there are any matching prefixes
-						$resulttwo = mysql_query("SELECT * FROM `$buildtrunk-prefixes` WHERE ($buildprequery) AND `Hostkey` = '{$row['Hostkey']}'");
-						if($resulttwo&&mysql_num_rows($resulttwo)>0)
+						$resulttwo = mysqli_query($this->dbLink, "SELECT * FROM `$buildtrunk-prefixes` WHERE ($buildprequery) AND `Hostkey` = '{$row['Hostkey']}'");
+						if($resulttwo&&mysqli_num_rows($resulttwo)>0)
 							{
 							//We found prefix matches	
 							$prematches = array();
 							$prelookup = array();
-							while ($rowtwo = mysql_fetch_array($resulttwo, MYSQL_ASSOC))
+							while ($rowtwo = mysqli_fetch_array($resulttwo, MYSQLI_ASSOC))
 								{
 								$prematches[] = array($rowtwo['Prefix'],$row['Chunknum']);
 								}
@@ -1400,5 +1406,5 @@ class phpGSB
 			}
 		return false;	
 			
-		}	
+		}
 	}
